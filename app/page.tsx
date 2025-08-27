@@ -3,6 +3,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { ArrowRight, Zap, Shield, Rocket, Star } from "lucide-react"
 import Terminal from "@/components/terminal"
+import CopilotIntegration from "@/components/copilot-integration"
 
 export default function FuturisticLandingPage() {
   return (
@@ -98,6 +99,27 @@ export default function FuturisticLandingPage() {
                 </p>
               </CardContent>
             </Card>
+          </div>
+        </div>
+      </section>
+
+      {/* Microsoft 365 Copilot Integration Section */}
+      <section className="py-24 bg-card/20">
+        <div className="container mx-auto px-4">
+          <div className="text-center space-y-4 mb-16">
+            <h2 className="text-3xl md:text-5xl font-bold text-balance">
+              Enhanced with{" "}
+              <span className="bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
+                AI Power
+              </span>
+            </h2>
+            <p className="text-lg text-muted-foreground max-w-2xl mx-auto text-pretty">
+              Microsoft 365 Copilot integration brings intelligent assistance to your development workflow.
+            </p>
+          </div>
+
+          <div className="max-w-2xl mx-auto">
+            <CopilotIntegration />
           </div>
         </div>
       </section>

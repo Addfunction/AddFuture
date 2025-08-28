@@ -1,29 +1,50 @@
-Gå til https://neon.tech og logg inn.
-2. Opprett et nytt prosjekt og en database.
-3. Kopier din `DATABASE_URL` fra Neon og lim den inn i .env-filen:
+# EMDR.dev - Development Playground
 
+A modern Next.js website for personal development projects and experimentation.
 
-DATABASE_URL=postgresql://brukernavn:passord@neon-host-url/dbnavn?sslmode=require
+## Getting Started
 
+### Prerequisites
 
-Installer avhengigheter:
+- Node.js 18+ 
+- npm or pnpm
 
-npm install
+### Installation
 
+1. Clone the repository:
+```bash
+git clone https://github.com/Addfunction/AddFuture.git
+cd AddFuture
+```
 
-Generer Prisma-klienten:
+2. Install dependencies:
+```bash
+npm install --legacy-peer-deps
+```
 
-npx prisma generate
-
-
-Kjør migrering for å sette opp databasen:
-
-npx prisma migrate dev --name init
-
-
-Start utviklingsserveren:
-
+3. Start the development server:
+```bash
 npm run dev
+```
 
+4. Open [http://localhost:3000](http://localhost:3000) in your browser.
 
-✅ Du er nå koblet til Neon og klar til å utvikle!
+## Available Scripts
+
+- `npm run dev` - Start the development server
+- `npm run build` - Build the application for production
+- `npm run start` - Start the production server
+- `npm run lint` - Run ESLint
+
+## Features
+
+- Modern Next.js 15 with React 19
+- Tailwind CSS for styling
+- Radix UI components
+- TypeScript support
+- Responsive design
+- DNS management utilities
+
+## DNS Management
+
+This project includes DNS management tools for the emdr.dev domain. See `DNS_SETUP.md` for setup instructions.

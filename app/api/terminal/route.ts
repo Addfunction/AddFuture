@@ -35,23 +35,23 @@ export async function POST(request: NextRequest) {
     const output = stdout || stderr || "Command completed successfully"
 
     return NextResponse.json({ output })
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Terminal command error:", error)
 
-    if (error.code === "ENOENT") {
+    if ((error as NodeJS.ErrnoException).code === "ENOENT") {
       return NextResponse.json({
         error: `Command not found. Make sure the required tools are installed.`,
       })
     }
 
-    if (error.killed) {
+    if ((error as { killed?: boolean }).killed) {
       return NextResponse.json({
         error: "Command timed out after 30 seconds.",
       })
     }
 
     return NextResponse.json({
-      error: error.message || "An error occurred while executing the command.",
+      error: (error as Error).message || "An error occurred while executing the command."
     })
   }
 }

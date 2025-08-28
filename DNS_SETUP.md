@@ -77,9 +77,47 @@ This will:
 - Add `add_function.emdr.dev` subdomain (A record pointing to 192.168.1.101)
 - List all current DNS records for the domain
 
+### Command Line Usage
+
+The script now supports command-line arguments for automated operations:
+
+#### Add/Update a specific subdomain
+
+```bash
+# Add a CNAME record for GitHub Pages
+python manage_dns.py --subdomain addfuture --domain emdr.dev --type CNAME --content Addfunction.github.io
+
+# Add an A record
+python manage_dns.py --subdomain api --domain emdr.dev --type A --content 192.168.1.100
+
+# Force update even if record exists
+python manage_dns.py --subdomain api --domain emdr.dev --type A --content 192.168.1.200 --force
+```
+
+#### List DNS records
+
+```bash
+# List all records for a domain
+python manage_dns.py --list --domain emdr.dev
+
+# List filtered records
+python manage_dns.py --list --domain emdr.dev --filter addfuture
+```
+
+#### Available options
+
+- `--subdomain`: Subdomain name to add/update
+- `--domain`: Domain name  
+- `--type`: DNS record type (A, CNAME, TXT, etc.)
+- `--content`: DNS record content
+- `--ttl`: Time to live in seconds (default: 600)
+- `--force`: Force update even if record exists with same content
+- `--list`: List DNS records for the specified domain
+- `--filter`: Filter records by name when listing
+
 ### Custom Usage
 
-You can modify the script or use it as a module to add your own subdomains:
+You can also use the script as a module to add your own subdomains:
 
 ```python
 from manage_dns import PorkbunDNS
@@ -180,7 +218,21 @@ The script supports common DNS record types:
 
 ## GitHub Actions Integration
 
-This script can be easily integrated into GitHub Actions workflows for automated DNS management. Example workflow:
+This script can be easily integrated into GitHub Actions workflows for automated DNS management.
+
+### Automated GitHub Pages DNS Workflow
+
+This repository includes an automated workflow (`.github/workflows/update-dns.yml`) that points `addfuture.emdr.dev` to GitHub Pages hosting. The workflow:
+
+- Triggers manually or on pushes to main/releases
+- Uses GitHub Secrets for secure API key storage
+- Automatically creates/updates the CNAME record for GitHub Pages
+
+Required secrets:
+- `DNS_API_KEY`: Your Porkbun API key
+- `PORKBUN_SECRET_KEY`: Your Porkbun secret key
+
+### Manual Workflow Example
 
 ```yaml
 name: Update DNS
@@ -190,21 +242,30 @@ on:
       subdomain:
         description: 'Subdomain to add'
         required: true
-      ip_address:
-        description: 'IP address to point to'
+      record_type:
+        description: 'Record type (A, CNAME, TXT)'
+        required: true
+        default: 'A'
+      content:
+        description: 'Record content (IP address or target)'
         required: true
 
 jobs:
   update-dns:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - uses: actions/setup-python@v4
         with:
-          python-version: '3.9'
+          python-version: '3.12'
       - run: pip install -r requirements.txt
-      - run: python manage_dns.py
+      - run: |
+          python manage_dns.py \
+            --subdomain ${{ github.event.inputs.subdomain }} \
+            --domain emdr.dev \
+            --type ${{ github.event.inputs.record_type }} \
+            --content ${{ github.event.inputs.content }}
         env:
-          PORKBUN_API_KEY: ${{ secrets.PORKBUN_API_KEY }}
+          PORKBUN_API_KEY: ${{ secrets.DNS_API_KEY }}
           PORKBUN_SECRET_KEY: ${{ secrets.PORKBUN_SECRET_KEY }}
 ```

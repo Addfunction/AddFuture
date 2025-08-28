@@ -1,0 +1,56 @@
+name: Update DNS for GitHub Pages
+
+on:
+  workflow_dispatch:
+    inputs:
+      force_update:
+        description: 'Force DNS record update even if it exists'
+        required: false
+        default: 'false'
+        type: boolean
+  push:
+    branches:
+      - main
+    paths:
+      - 'app/**'
+      - 'components/**'
+      - 'public/**'
+      - 'styles/**'
+      - 'package.json'
+  release:
+    types: [published]
+
+jobs:
+  update-dns:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.12'
+          
+      - name: Install Python dependencies
+        run: |
+          pip install -r requirements.txt
+          
+      - name: Update DNS record for addfuture.emdr.dev
+        run: |
+          if [ "${{ github.event.inputs.force_update }}" = "true" ]; then
+            python manage_dns.py --subdomain addfuture --domain emdr.dev --type CNAME --content Addfunction.github.io --force
+          else
+            python manage_dns.py --subdomain addfuture --domain emdr.dev --type CNAME --content Addfunction.github.io
+          fi
+        env:
+          PORKBUN_API_KEY: ${{ secrets.DNS_API_KEY }}
+          PORKBUN_SECRET_KEY: ${{ secrets.PORKBUN_SECRET_KEY }}
+          
+      - name: Verify DNS record
+        run: |
+          python manage_dns.py --list --domain emdr.dev --filter addfuture
+        env:
+          PORKBUN_API_KEY: ${{ secrets.DNS_API_KEY }}
+          PORKBUN_SECRET_KEY: ${{ secrets.PORKBUN_SECRET_KEY }}

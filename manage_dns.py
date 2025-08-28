@@ -18,6 +18,7 @@ import os
 import requests
 import json
 import sys
+import argparse
 from typing import Optional, Dict, Any
 
 
@@ -127,6 +128,68 @@ class PorkbunDNS:
             print(f"❌ Error retrieving records: {e}")
             return None
     
+    def update_or_create_record(self, domain: str, subdomain: str, record_type: str, content: str, ttl: int = 600, force: bool = False) -> bool:
+        """
+        Update an existing DNS record or create a new one.
+        
+        Args:
+            domain (str): The main domain (e.g., 'emdr.dev')
+            subdomain (str): The subdomain name (e.g., 'api', 'addfuture')
+            record_type (str): The DNS record type (e.g., 'A', 'CNAME', 'TXT')
+            content (str): The value for the DNS record (e.g., IP address or target domain)
+            ttl (int): Time to live in seconds (default: 600)
+            force (bool): Force update even if record exists with same content
+            
+        Returns:
+            bool: True if successful, False otherwise
+        """
+        full_name = f"{subdomain}.{domain}"
+        
+        # Check if record already exists
+        existing_records = self.list_records(domain)
+        if existing_records:
+            for record in existing_records:
+                if (record.get('name') == subdomain and 
+                    record.get('type') == record_type.upper()):
+                    
+                    if record.get('content') == content and not force:
+                        print(f"✅ Record {full_name} ({record_type}) -> {content} already exists and is up to date")
+                        return True
+                    
+                    # Delete existing record before creating new one
+                    print(f"🔄 Updating existing record {full_name}...")
+                    if self.delete_record(domain, record.get('id')):
+                        print(f"✅ Deleted old record for {full_name}")
+                    else:
+                        print(f"⚠️  Failed to delete old record for {full_name}, proceeding anyway...")
+        
+        # Create new record
+        return self.add_subdomain(domain, subdomain, record_type, content, ttl)
+
+    def list_records_filtered(self, domain: str, filter_name: Optional[str] = None) -> Optional[list]:
+        """
+        List DNS records for a domain with optional filtering.
+        
+        Args:
+            domain (str): The domain to list records for
+            filter_name (str): Optional filter to only show records containing this name
+            
+        Returns:
+            list: List of DNS records or None if failed
+        """
+        records = self.list_records(domain)
+        if not records:
+            return records
+            
+        if filter_name:
+            filtered_records = [
+                record for record in records 
+                if filter_name.lower() in record.get('name', '').lower()
+            ]
+            return filtered_records
+            
+        return records
+
     def delete_record(self, domain: str, record_id: str) -> bool:
         """
         Delete a DNS record by ID.
@@ -155,18 +218,124 @@ class PorkbunDNS:
             return False
 
 
+def parse_arguments() -> argparse.Namespace:
+    """Parse command line arguments."""
+    parser = argparse.ArgumentParser(
+        description='DNS Management Script for emdr.dev domain using Porkbun API',
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+Examples:
+  # Add/update addfuture.emdr.dev CNAME record
+  python manage_dns.py --subdomain addfuture --domain emdr.dev --type CNAME --content Addfunction.github.io
+  
+  # List all records for emdr.dev
+  python manage_dns.py --list --domain emdr.dev
+  
+  # List filtered records
+  python manage_dns.py --list --domain emdr.dev --filter addfuture
+  
+  # Run with example data (default behavior)
+  python manage_dns.py
+        """
+    )
+    
+    parser.add_argument('--subdomain', 
+                       help='Subdomain name to add/update (e.g., "addfuture")')
+    parser.add_argument('--domain', 
+                       help='Domain name (e.g., "emdr.dev")')
+    parser.add_argument('--type', 
+                       help='DNS record type (A, CNAME, TXT, etc.)')
+    parser.add_argument('--content', 
+                       help='DNS record content (IP address, target domain, etc.)')
+    parser.add_argument('--ttl', type=int, default=600,
+                       help='Time to live in seconds (default: 600)')
+    parser.add_argument('--force', action='store_true',
+                       help='Force update even if record exists with same content')
+    parser.add_argument('--list', action='store_true',
+                       help='List DNS records for the specified domain')
+    parser.add_argument('--filter',
+                       help='Filter records by name when listing')
+    
+    return parser.parse_args()
+
+
 def main():
     """Main function with example usage."""
-    # Check for help argument
+    args = parse_arguments()
+    
+    # Check for help argument (backward compatibility)
     if len(sys.argv) > 1 and sys.argv[1] in ['-h', '--help', 'help']:
         print(__doc__)
         print("\nFor detailed setup instructions, see DNS_SETUP.md")
         return
     
+    # Handle list mode argument validation before DNS manager initialization
+    if args.list and not args.domain:
+        print("❌ --domain is required when using --list")
+        sys.exit(1)
+    
+    # Validate required arguments for record operations
+    if any([args.subdomain, args.domain, args.type, args.content]):
+        missing_args = []
+        if not args.subdomain:
+            missing_args.append("--subdomain")
+        if not args.domain:
+            missing_args.append("--domain")
+        if not args.type:
+            missing_args.append("--type")
+        if not args.content:
+            missing_args.append("--content")
+            
+        if missing_args:
+            print(f"❌ Missing required arguments: {', '.join(missing_args)}")
+            print("Use --help for usage information")
+            sys.exit(1)
+    
     try:
         # Initialize DNS manager
         dns_manager = PorkbunDNS()
         
+        # Handle command line arguments
+        if args.list:
+            # List records mode
+            print(f"📋 DNS records for {args.domain}:")
+            records = dns_manager.list_records_filtered(args.domain, args.filter)
+            if records:
+                for record in records:
+                    record_name = record.get('name', '')
+                    if record_name:
+                        full_name = f"{record_name}.{args.domain}"
+                    else:
+                        full_name = args.domain
+                    print(f"  • {full_name} ({record.get('type', '')}) -> {record.get('content', '')}")
+                print(f"\n✅ Found {len(records)} record(s)")
+            else:
+                print("  No records found or failed to retrieve records")
+            return
+            
+        elif args.subdomain and args.domain and args.type and args.content:
+            # Single record update mode
+            print(f"🚀 DNS Management Script for {args.domain}")
+            print("=" * 50)
+            print(f"\n📍 Updating {args.subdomain}.{args.domain} subdomain...")
+            
+            success = dns_manager.update_or_create_record(
+                domain=args.domain,
+                subdomain=args.subdomain,
+                record_type=args.type,
+                content=args.content,
+                ttl=args.ttl,
+                force=args.force
+            )
+            
+            if success:
+                print(f"\n✅ Successfully configured {args.subdomain}.{args.domain}")
+            else:
+                print(f"\n❌ Failed to configure {args.subdomain}.{args.domain}")
+                sys.exit(1)
+            return
+            
+        # Default example mode (backward compatibility)
         print("🚀 DNS Management Script for emdr.dev")
         print("=" * 50)
         

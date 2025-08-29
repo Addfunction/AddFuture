@@ -1,0 +1,49 @@
+{
+  "extends": [
+    "next/core-web-vitals",
+    "next/typescript"
+  ],
+  "rules": {
+    // TypeScript specific rules (using base ESLint rules instead of @typescript-eslint for compatibility)
+    "no-unused-vars": [
+      "warn",
+      {
+        "argsIgnorePattern": "^_",
+        "varsIgnorePattern": "^_"
+      }
+    ],
+    
+    // React specific rules
+    "react/no-unescaped-entities": "off",
+    "react/jsx-key": "error",
+    "react/jsx-no-duplicate-props": "error",
+    "react/jsx-no-undef": "error",
+    "react/jsx-uses-react": "off",
+    "react/jsx-uses-vars": "error",
+    "react/no-children-prop": "error",
+    "react/no-danger": "warn",
+    "react/no-deprecated": "warn",
+    "react/no-direct-mutation-state": "error",
+    "react/require-render-return": "error",
+
+    // General JavaScript rules
+    "no-console": "warn",
+    "no-debugger": "warn",
+    "no-duplicate-imports": "error",
+    "no-unused-expressions": "warn",
+    "prefer-const": "error",
+    "no-var": "error",
+
+    // Next.js specific
+    "@next/next/no-img-element": "warn",
+    "@next/next/no-html-link-for-pages": "error"
+  },
+  "overrides": [
+    {
+      "files": ["**/app/api/**/*.ts"],
+      "rules": {
+        "no-console": "off"
+      }
+    }
+  ]
+}
